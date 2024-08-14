@@ -9,14 +9,17 @@ import cv2
 import numpy as np
 import torch
 from PIL import Image
-
 from ultralytics.data.utils import polygons2masks, polygons2masks_overlap
 from ultralytics.utils import LOGGER, colorstr
 from ultralytics.utils.checks import check_version
 from ultralytics.utils.instance import Instances
 from ultralytics.utils.metrics import bbox_ioa
 from ultralytics.utils.ops import segment2box, xyxyxyxy2xywhr
-from ultralytics.utils.torch_utils import TORCHVISION_0_10, TORCHVISION_0_11, TORCHVISION_0_13
+from ultralytics.utils.torch_utils import (
+    TORCHVISION_0_10,
+    TORCHVISION_0_11,
+    TORCHVISION_0_13,
+)
 
 DEFAULT_MEAN = (0.0, 0.0, 0.0)
 DEFAULT_STD = (1.0, 1.0, 1.0)
@@ -1830,13 +1833,34 @@ class Albumentations:
 
             # Transforms
             T = [
-                A.Blur(p=0.01),
-                A.MedianBlur(p=0.01),
-                A.ToGray(p=0.01),
-                A.CLAHE(p=0.01),
-                A.RandomBrightnessContrast(p=0.0),
-                A.RandomGamma(p=0.0),
-                A.ImageCompression(quality_lower=75, p=0.0),
+                A.OneOf(
+                    [
+                        A.IAAAdditiveGaussianNoise(),
+                        A.GaussNoise(),
+                    ],
+                    p=0.5,
+                ),
+                A.OneOf(
+                    [
+                        A.MotionBlur(p=0.2),
+                        A.MedianBlur(blur_limit=3, p=0.1),
+                        A.Blur(blur_limit=3, p=0.1),
+                    ],
+                    p=0.3,
+                ),
+                A.OneOf(
+                    [A.RandomBrightnessContrast(0.1, 0.2), A.CLAHE(p=0.01), A.RandomGamma(p=0.0)],
+                    p=0.3,
+                ),
+                A.OneOf(
+                    [
+                        A.RandomShadow(shadow_roi=(0, 0, 1, 1)),
+                        A.RandomRain(brightness_coefficient=0.9, drop_width=1, blur_value=5),
+                        A.ImageCompression(quality_lower=75, p=0.0),
+                    ],
+                    p=0.1,
+                ),
+                A.OneOf([A.ColorJitter(p=1), A.ToGray(), A.ToSepia()], p=0.1),
             ]
 
             # Compose transforms
