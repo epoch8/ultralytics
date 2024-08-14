@@ -25,6 +25,8 @@ DEFAULT_MEAN = (0.0, 0.0, 0.0)
 DEFAULT_STD = (1.0, 1.0, 1.0)
 DEFAULT_CROP_FRACTION = 1.0
 
+SANITY_CHECK_VARIABLE = True
+
 
 class BaseTransform:
     """
