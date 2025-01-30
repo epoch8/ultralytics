@@ -1732,6 +1732,20 @@ class CopyPaste(BaseMixTransform):
         return labels1
 
 
+
+class InvertDepthChannel(A.ImageOnlyTransform):
+    """
+    Custom augmentation for inverting the depth channel (D).
+    Assumes the input image has shape (H, W, 4).
+    """
+    def __init__(self, always_apply=False, p=1.0):
+        super(InvertDepthChannel, self).__init__(always_apply, p)
+
+    def apply(self, img, **params):
+        if img.shape[-1] == 4:
+            img[..., 3] = 1.0 - img[..., 3]
+        return img
+
 class Albumentations:
     """
     Albumentations transformations for image augmentation.
@@ -2274,6 +2288,53 @@ class RandomLoadText:
         labels["texts"] = texts
         return labels
 
+class SeparateRGBD:
+    """
+    Separates RGB and Depth channels, applies augmentations to RGB, and recombines them with Depth.
+    """
+    def __call__(self, labels):
+        """
+        Separates RGB and Depth, applies augmentations to RGB, and recombines.
+        """
+        img = labels["img"]
+        # Assuming the last channel is Depth
+        rgb = img[..., :3]
+        depth = img[..., 3:]
+        
+        labels["img"] = rgb  # Update labels to contain only RGB for augmentations
+        labels["depth"] = depth
+        
+        return labels
+
+class CombineDepthChannel:
+    """
+    Combines RGB and Depth channels.
+    """    
+    def __call__(self, labels):
+        img = labels["img"]
+        depth = labels["depth"]
+        labels["img"] = np.concatenate([img, depth], axis=-1)
+        del labels["depth"]
+        return labels
+
+class InvertDepthChannel:
+    """
+    Inverts the Depth channel of RGBD images with a given probability.
+    """
+    def __init__(self, p=0.5):
+        self.p = p
+    
+    def __call__(self, labels):
+        """
+        Inverts the Depth channel with probability self.p.
+        """
+        max_value = 255 if img.dtype == np.uint8 else 1.0
+        if random.random() < self.p:
+            img = labels["img"]
+            if img.shape[-1] == 4:
+                img[..., 3] = max_value - img[..., 3]
+                labels["img"] = img
+        return labels
 
 def v8_transforms(dataset, imgsz, hyp, stretch=False):
     """
@@ -2332,14 +2393,19 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
 
     return Compose(
         [
+            SeparateRGBD(),  # Split RGB and D
             pre_transform,
             MixUp(dataset, pre_transform=pre_transform, p=hyp.mixup),
             Albumentations(p=1.0),
             RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v),
             RandomFlip(direction="vertical", p=hyp.flipud),
             RandomFlip(direction="horizontal", p=hyp.fliplr, flip_idx=flip_idx),
+            CombineDepthChannel(),
+            InvertDepthChannel(p=0.5)  # Invert Depth channel with 50% probability
         ]
-    )  # transforms
+    )
+
+
 
 
 # Classification augmentations -----------------------------------------------------------------------------------------
