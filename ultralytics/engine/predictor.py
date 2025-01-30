@@ -155,13 +155,11 @@ class BasePredictor:
             (list): A list of transformed images.
         """
         same_shapes = len({x.shape for x in im}) == 1
-        print(f"before: {im[0].shape=}")
         letterbox = LetterBox(
             self.imgsz,
             auto=same_shapes and (self.model.pt or (getattr(self.model, "dynamic", False) and not self.model.imx)),
             stride=self.model.stride,
         )
-        print(f"after: {letterbox(image=im[0]).shape=}")
         return [letterbox(image=x) for x in im]
 
     def postprocess(self, preds, img, orig_imgs):
@@ -256,7 +254,9 @@ class BasePredictor:
 
                 # Preprocess
                 with profilers[0]:
+                    print(f"im0s: {im0s[0].shape=}")
                     im = self.preprocess(im0s)
+                    print(f"im: {im[0].shape=}")
 
                 # Inference
                 with profilers[1]:
