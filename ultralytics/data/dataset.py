@@ -470,7 +470,7 @@ class ClassificationDataset:
                 np.save(fn.as_posix(), cv2.imread(f, cv2.IMREAD_UNCHANGED), allow_pickle=False)
             im = np.load(fn)
         else:  # read image
-            im = cv2.imread(f)  # BGR
+            im = cv2.imread(f, cv2.IMREAD_UNCHANGED)  # BGR
         # Convert NumPy array to PIL image
         im = Image.fromarray(cv2.cvtColor(im, cv2.COLOR_BGRA2RGBA))
         sample = self.torch_transforms(im)

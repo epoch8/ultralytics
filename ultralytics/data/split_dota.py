@@ -284,7 +284,7 @@ def split_test(data_root, save_dir, crop_size=1024, gap=200, rates=(1.0,)):
     for im_file in TQDM(im_files, total=len(im_files), desc="test"):
         w, h = exif_size(Image.open(im_file))
         windows = get_windows((h, w), crop_sizes=crop_sizes, gaps=gaps)
-        im = cv2.imread(im_file)
+        im = cv2.imread(im_file, cv2.IMREAD_UNCHANGED)
         name = Path(im_file).stem
         for window in windows:
             x_start, y_start, x_stop, y_stop = window.tolist()
