@@ -629,11 +629,13 @@ class Mosaic(BaseMixTransform):
             labels_patch = labels if i == 0 else labels["mix_labels"][i - 1]
             # Load image
             img = labels_patch["img"]
+            depth = labels_patch["depth"]
             h, w = labels_patch.pop("resized_shape")
 
             # Place img in img3
             if i == 0:  # center
                 img3 = np.full((s * 3, s * 3, img.shape[2]), 114, dtype=np.uint8)  # base image with 3 tiles
+                depth3 = np.full((s * 3, s * 3, 1), 114, dtype=np.uint8)
                 h0, w0 = h, w
                 c = s, s, s + w, s + h  # xmin, ymin, xmax, ymax (base) coordinates
             elif i == 1:  # right
@@ -645,6 +647,7 @@ class Mosaic(BaseMixTransform):
             x1, y1, x2, y2 = (max(x, 0) for x in c)  # allocate coordinates
 
             img3[y1:y2, x1:x2] = img[y1 - padh :, x1 - padw :]  # img3[ymin:ymax, xmin:xmax]
+            depth3[y1:y2, x1:x2] = depth[y1 - padh :, x1 - padw :]
             # hp, wp = h, w  # height, width previous for next iteration
 
             # Labels assuming imgsz*2 mosaic size
@@ -653,6 +656,7 @@ class Mosaic(BaseMixTransform):
         final_labels = self._cat_labels(mosaic_labels)
 
         final_labels["img"] = img3[-self.border[0] : self.border[0], -self.border[1] : self.border[1]]
+        final_labels["depth"] = depth3[-self.border[0] : self.border[0], -self.border[1] : self.border[1]]
         return final_labels
 
     def _mosaic4(self, labels):
@@ -686,11 +690,13 @@ class Mosaic(BaseMixTransform):
             labels_patch = labels if i == 0 else labels["mix_labels"][i - 1]
             # Load image
             img = labels_patch["img"]
+            depth = labels_patch["depth"]
             h, w = labels_patch.pop("resized_shape")
 
             # Place img in img4
             if i == 0:  # top left
                 img4 = np.full((s * 2, s * 2, img.shape[2]), 114, dtype=np.uint8)  # base image with 4 tiles
+                depth4 = np.full((s * 2, s * 2, 1), 114, dtype=np.uint8)
                 x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc  # xmin, ymin, xmax, ymax (large image)
                 x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h  # xmin, ymin, xmax, ymax (small image)
             elif i == 1:  # top right
@@ -704,6 +710,7 @@ class Mosaic(BaseMixTransform):
                 x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
 
             img4[y1a:y2a, x1a:x2a] = img[y1b:y2b, x1b:x2b]  # img4[ymin:ymax, xmin:xmax]
+            depth4[y1a:y2a, x1a:x2a] = depth[y1b:y2b, x1b:x2b]
             padw = x1a - x1b
             padh = y1a - y1b
 
@@ -711,6 +718,7 @@ class Mosaic(BaseMixTransform):
             mosaic_labels.append(labels_patch)
         final_labels = self._cat_labels(mosaic_labels)
         final_labels["img"] = img4
+        final_labels["depth"] = depth4
         return final_labels
 
     def _mosaic9(self, labels):
@@ -746,11 +754,13 @@ class Mosaic(BaseMixTransform):
             labels_patch = labels if i == 0 else labels["mix_labels"][i - 1]
             # Load image
             img = labels_patch["img"]
+            depth = labels_patch["depth"]
             h, w = labels_patch.pop("resized_shape")
 
             # Place img in img9
             if i == 0:  # center
                 img9 = np.full((s * 3, s * 3, img.shape[2]), 114, dtype=np.uint8)  # base image with 4 tiles
+                depth9 = np.full((s * 3, s * 3, 1), 114, dtype=np.uint8)
                 h0, w0 = h, w
                 c = s, s, s + w, s + h  # xmin, ymin, xmax, ymax (base) coordinates
             elif i == 1:  # top
@@ -775,6 +785,7 @@ class Mosaic(BaseMixTransform):
 
             # Image
             img9[y1:y2, x1:x2] = img[y1 - padh :, x1 - padw :]  # img9[ymin:ymax, xmin:xmax]
+            depth9[y1:y2, x1:x2] = depth[y1 - padh :, x1 - padw :]
             hp, wp = h, w  # height, width previous for next iteration
 
             # Labels assuming imgsz*2 mosaic size
@@ -783,6 +794,7 @@ class Mosaic(BaseMixTransform):
         final_labels = self._cat_labels(mosaic_labels)
 
         final_labels["img"] = img9[-self.border[0] : self.border[0], -self.border[1] : self.border[1]]
+        final_labels["depth"] = depth9[-self.border[0] : self.border[0], -self.border[1] : self.border[1]]
         return final_labels
 
     @staticmethod
@@ -2368,6 +2380,7 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
                 mode=hyp.copy_paste_mode,
             )
         )
+    pre_transform.append(SeparateRGBD())
     flip_idx = dataset.data.get("flip_idx", [])  # for keypoints augmentation
     if dataset.use_keypoints:
         kpt_shape = dataset.data.get("kpt_shape", None)
@@ -2379,7 +2392,6 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
 
     return Compose(
         [
-            SeparateRGBD(),  # Split RGB and D
             pre_transform,
             MixUp(dataset, pre_transform=pre_transform, p=hyp.mixup),
             Albumentations(p=1.0),
