@@ -125,7 +125,7 @@ class BasePredictor:
         not_tensor = not isinstance(im, torch.Tensor)
         if not_tensor:
             im = np.stack(self.pre_transform(im))
-            im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
+            im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW, (n, 4, h, w)
             im = np.ascontiguousarray(im)  # contiguous
             im = torch.from_numpy(im)
 
@@ -149,17 +149,19 @@ class BasePredictor:
         Pre-transform input image before inference.
 
         Args:
-            im (List(np.ndarray)): (N, 3, h, w) for tensor, [(h, w, 3) x N] for list.
+            im (List(np.ndarray)): (N, 4, h, w) for tensor, [(h, w, 4) x N] for list.
 
         Returns:
             (list): A list of transformed images.
         """
         same_shapes = len({x.shape for x in im}) == 1
+        print(f"before: {im[0].shape=}")
         letterbox = LetterBox(
             self.imgsz,
             auto=same_shapes and (self.model.pt or (getattr(self.model, "dynamic", False) and not self.model.imx)),
             stride=self.model.stride,
         )
+        print(f"after: {letterbox(image=im[0]).shape=}")
         return [letterbox(image=x) for x in im]
 
     def postprocess(self, preds, img, orig_imgs):
