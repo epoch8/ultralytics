@@ -1732,20 +1732,6 @@ class CopyPaste(BaseMixTransform):
         return labels1
 
 
-
-class InvertDepthChannel(A.ImageOnlyTransform):
-    """
-    Custom augmentation for inverting the depth channel (D).
-    Assumes the input image has shape (H, W, 4).
-    """
-    def __init__(self, always_apply=False, p=1.0):
-        super(InvertDepthChannel, self).__init__(always_apply, p)
-
-    def apply(self, img, **params):
-        if img.shape[-1] == 4:
-            img[..., 3] = 1.0 - img[..., 3]
-        return img
-
 class Albumentations:
     """
     Albumentations transformations for image augmentation.
