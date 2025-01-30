@@ -2314,9 +2314,9 @@ class InvertDepthChannel:
         """
         Inverts the Depth channel with probability self.p.
         """
-        max_value = 255 if img.dtype == np.uint8 else 1.0
         if random.random() < self.p:
             img = labels["img"]
+            max_value = 255 if img.dtype == np.uint8 else 1.0
             if img.shape[-1] == 4:
                 img[..., 3] = max_value - img[..., 3]
                 labels["img"] = img
