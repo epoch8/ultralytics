@@ -700,6 +700,7 @@ def check_amp(model):
 
     im = ASSETS / "bus.jpg"  # image to check
     # add 4th channel to image filled with 255
+    im = cv2.imread(im)
     im = np.concatenate([im, np.full((im.shape[0], im.shape[1], 1), 255, dtype=np.uint8)], axis=-1)
     LOGGER.info(f"{prefix}running Automatic Mixed Precision (AMP) checks...")
     warning_msg = "Setting 'amp=True'. If you experience zero-mAP or NaN losses you can disable AMP with amp=False."
